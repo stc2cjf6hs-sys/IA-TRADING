@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ChartLens · Analyse IA</title>
+<style>
+:root{--bg:#f3f5fa;--bg2:#e6ebf5;--card:rgba(255,255,255,.8);--text:#121826;--muted:#667085;--line:rgba(18,24,38,.1);--a1:#5b6cff;--a2:#18c3a4;--on:#fff;--input:#fff;--warn:#8a5a00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#070a12;--bg2:#0e1424;--card:rgba(22,28,46,.72);--text:#e8ecf6;--muted:#8d97ad;--line:rgba(255,255,255,.09);--input:#0b101d;--warn:#e8c57a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#070a12;--bg2:#0e1424;--card:rgba(22,28,46,.72);--text:#e8ecf6;--muted:#8d97ad;--line:rgba(255,255,255,.09);--input:#0b101d;--warn:#e8c57a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;color:var(--text);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(900px 500px at 85% -10%,color-mix(in srgb,var(--a1) 22%,transparent),transparent),radial-gradient(700px 400px at -5% 10%,color-mix(in srgb,var(--a2) 16%,transparent),transparent),var(--bg);min-height:100vh}
+main{max-width:1180px;margin:0 auto;padding:22px 16px 40px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--a1),var(--a2));display:grid;place-items:center;font-size:22px}
+h1{font-size:1.25rem;margin:0;letter-spacing:-.01em}.sub{color:var(--muted);font-size:.85rem;margin:0}
+.grid{display:grid;gap:16px}@media(min-width:960px){.grid{grid-template-columns:1.5fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;backdrop-filter:blur(14px);box-shadow:0 10px 40px rgba(0,0,0,.12)}
+#stage{position:relative;border-radius:12px;overflow:hidden;background:var(--input);min-height:240px}
+#cv{display:none;width:100%;height:auto}
+#drop{display:grid;place-items:center;text-align:center;padding:70px 16px;color:var(--muted);border:2px dashed var(--line);border-radius:12px;cursor:pointer;transition:.2s}
+#drop:hover,#drop.over{border-color:var(--a1);color:var(--text)}#drop b{display:block;font-size:1.05rem;color:var(--text);margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.chip{border:1px solid var(--line);background:var(--input);color:var(--text);padding:8px 12px;border-radius:999px;font:500 .82rem inherit;font-family:inherit;cursor:pointer;transition:.15s}
+.chip:hover:not(:disabled){border-color:var(--a1);transform:translateY(-1px)}.chip:disabled{opacity:.45;cursor:not-allowed}
+.chip.ghost{color:var(--muted)}
+#chat{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow:auto;padding:2px}
+.msg{padding:10px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:.9rem;max-width:94%}
+.me{align-self:flex-end;background:linear-gradient(135deg,var(--a1),color-mix(in srgb,var(--a1) 60%,var(--a2)));color:var(--on)}
+.ai{align-self:flex-start;background:var(--input);border:1px solid var(--line)}.ai.err{color:#e5484d}
+.empty{color:var(--muted);font-size:.88rem;padding:8px 2px}
+.bar{display:flex;gap:8px;margin-top:12px}
+input[type=text]{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--input);color:var(--text);font:inherit}
+input[type=text]:focus{outline:2px solid var(--a1);border-color:transparent}
+.send{border:0;border-radius:12px;padding:0 18px;background:linear-gradient(135deg,var(--a1),var(--a2));color:var(--on);font:600 .95rem inherit;font-family:inherit;cursor:pointer}.send:disabled{opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:.75rem;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.warn{margin-top:14px;font-size:.78rem;color:var(--warn);text-align:center}
+.dots span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--muted);animation:b 1s infinite}.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="logo">📈</div><div><h1>ChartLens</h1><p class="sub">Déposez un graphique, demandez-lui de tracer ce que vous voulez.</p></div></header>
+<div class="grid">
+ <section class="card">
+  <div id="stage"><div id="drop"><div><b>Déposez votre graphique ici</b>clic, glisser-déposer ou Ctrl+V</div></div><canvas id="cv"></canvas></div>
+  <input id="file" type="file" accept="image/*" hidden>
+  <div class="chips" id="chips"></div>
+  <div class="legend"><span><i style="background:#22c58b"></i>Support</span><span><i style="background:#ef4f5b"></i>Résistance</span><span><i style="background:#f5b942"></i>Fibonacci</span><span><i style="background:#38bdf8"></i>Prédiction</span><span><i style="background:#a78bfa"></i>Zones / repères</span></div>
+ </section>
+ <section class="card" style="display:flex;flex-direction:column">
+  <div id="chat"><div class="empty">Chargez un graphique puis cliquez sur une action ou écrivez votre demande : « mets du Fibonacci sur la dernière hausse », « trace une prédiction », « marque les zones d’achat »…</div></div>
+  <div class="bar"><input id="q" type="text" placeholder="Votre demande…" disabled><button class="send" id="send" disabled>Envoyer</button></div>
+ </section>
+</div>
+<p class="warn">⚠️ Outil éducatif, pas un conseil financier. Les tracés sont des estimations visuelles : vérifiez-les sur votre plateforme.</p>
+</main>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},cv=$("cv"),ctx=cv.getContext("2d"),drop=$("drop"),chat=$("chat"),q=$("q"),send=$("send"),
+img=null,blob=null,ann=[],hist=[],busy=false;
+var ACTIONS=[["Analyse complète","Fais une analyse complète : tendance, niveaux clés, plan de trade, et trace supports, résistances et repères d’entrée/stop/objectif."],
+["Fibonacci","Trace un retracement de Fibonacci sur le dernier mouvement impulsif significatif, avec les extensions."],
+["Supports / Résistances","Trace les principaux supports et résistances."],
+["Prédiction","Trace un scénario de prédiction probable (chemin en pointillés) avec les niveaux à surveiller et un scénario alternatif."],
+["Zones d’achat/vente","Marque les zones d’offre et de demande et les points d’entrée possibles."],
+["Tendance","Trace les lignes de tendance et le canal."]];
+ACTIONS.forEach(function(a){var b=document.createElement("button");b.className="chip";b.textContent=a[0];b.disabled=true;b.onclick=function(){ask(a[1],a[0])};$("chips").appendChild(b)});
+var clr=document.createElement("button");clr.className="chip ghost";clr.textContent="Effacer les tracés";clr.onclick=function(){ann=[];draw()};$("chips").appendChild(clr);
+
+function enable(){send.disabled=false;q.disabled=false;[].forEach.call(document.querySelectorAll(".chip"),function(c){c.disabled=false})}
+function setImage(f){
+ if(!f||f.type.indexOf("image/")!==0)return;
+ blob=f;var im=new Image();im.onload=function(){img=im;cv.width=im.naturalWidth;cv.height=im.naturalHeight;drop.style.display="none";cv.style.display="block";ann=[];hist=[];chat.innerHTML="";draw();enable()};im.src=URL.createObjectURL(f)}
+drop.onclick=function(){$("file").click()};$("file").onchange=function(){setImage(this.files[0])};
+["dragover","dragenter"].forEach(function(e){drop.addEventListener(e,function(v){v.preventDefault();drop.classList.add("over")})});
+["dragleave","drop"].forEach(function(e){drop.addEventListener(e,function(){drop.classList.remove("over")})});
+drop.addEventListener("drop",function(v){v.preventDefault();setImage(v.dataTransfer.files[0])});
+document.addEventListener("paste",function(v){var it=(v.clipboardData||{}).items||[];for(var i=0;i<it.length;i++)if(it[i].type.indexOf("image")===0){setImage(it[i].getAsFile());break}});
+
+var C={support:"#22c58b",resistance:"#ef4f5b",level:"#a78bfa",fib:"#f5b942",pred:"#38bdf8",buy:"#22c58b",sell:"#ef4f5b",info:"#a78bfa"};
+function n(v,d){v=parseFloat(v);return isFinite(v)?Math.max(-0.5,Math.min(1.5,v)):d}
+function pill(t,x,y,col,s,right){
+ ctx.font="600 "+(12*s)+"px system-ui,sans-serif";var w=ctx.measureText(t).width+10*s,h=18*s,px=right?x-w:x;
+ ctx.fillStyle="rgba(8,12,22,.82)";rr(px,y-h/2,w,h,5*s);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1*s;ctx.stroke();ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(t,px+5*s,y+.5)}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function draw(){
+ if(!img)return;var W=cv.width,H=cv.height,s=Math.max(1,W/1000);ctx.clearRect(0,0,W,H);ctx.drawImage(img,0,0);ctx.lineCap="round";ctx.setLineDash([]);
+ ann.forEach(function(a){try{
+  var col=C[a.kind]||C[a.t]||C.level,lab=a.label?String(a.label).slice(0,40):"";ctx.setLineDash([]);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2*s;
+  if(a.t==="hline"){var y=n(a.y,0)*H;ctx.setLineDash([8*s,5*s]);ctx.beginPath();ctx.moveTo(n(a.x1,0)*W,y);ctx.lineTo(n(a.x2,1)*W,y);ctx.stroke();if(lab)pill(lab,W-8*s,y-12*s,col,s,true)}
+  else if(a.t==="line"||a.t==="arrow"){var x1=n(a.x1)*W,y1=n(a.y1)*H,x2=n(a.x2)*W,y2=n(a.y2)*H;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+   if(a.t==="arrow"){var g=Math.atan2(y2-y1,x2-x1),k=11*s;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-k*Math.cos(g-.4),y2-k*Math.sin(g-.4));ctx.lineTo(x2-k*Math.cos(g+.4),y2-k*Math.sin(g+.4));ctx.closePath();ctx.fill()}
+   if(lab)pill(lab,(x1+x2)/2,(y1+y2)/2-14*s,col,s)}
+  else if(a.t==="zone"){var zx=n(a.x1,0)*W,zx2=n(a.x2,1)*W,zy=Math.min(n(a.y1),n(a.y2))*H,zh=Math.abs(n(a.y2)-n(a.y1))*H;ctx.globalAlpha=.18;ctx.fillRect(zx,zy,zx2-zx,zh);ctx.globalAlpha=.9;ctx.lineWidth=1.2*s;ctx.strokeRect(zx,zy,zx2-zx,zh);ctx.globalAlpha=1;if(lab)pill(lab,zx+6*s,zy+12*s,col,s)}
+  else if(a.t==="fib"){var fx1=n(a.x1)*W,fy1=n(a.y1),fy2=n(a.y2),fx2=n(a.x2)*W,L=[0,.236,.382,.5,.618,.786,1];if(a.ext!==false)L=L.concat([-.272,-.618]);
+   var start=Math.min(fx1,fx2);ctx.lineWidth=1.3*s;ctx.setLineDash([]);ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(fx1,fy1*H);ctx.lineTo(fx2,fy2*H);ctx.stroke();ctx.globalAlpha=1;
+   L.forEach(function(r,i){var yy=(fy2+(fy1-fy2)*r)*H;ctx.globalAlpha=r===.618||r===.5?1:.7;ctx.strokeStyle=col;ctx.lineWidth=(r===.618?2:1.2)*s;ctx.setLineDash(r<0?[3*s,4*s]:[]);ctx.beginPath();ctx.moveTo(start,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.globalAlpha=1;pill((r<0?"ext ":"")+(r*100).toFixed(1).replace(".0","")+"%",W-8*s,yy,col,s,true)})}
+  else if(a.t==="path"&&a.points&&a.points.length>1){ctx.setLineDash([9*s,6*s]);ctx.lineWidth=2.6*s;ctx.beginPath();a.points.forEach(function(p,i){var px=n(p[0])*W,py=n(p[1])*H;i?ctx.lineTo(px,py):ctx.moveTo(px,py)});ctx.stroke();
+   var e=a.points[a.points.length-1];ctx.setLineDash([]);ctx.beginPath();ctx.arc(n(e[0])*W,n(e[1])*H,5*s,0,7);ctx.fill();if(lab)pill(lab,n(e[0])*W-8*s,n(e[1])*H-16*s,col,s,true)}
+  else if(a.t==="marker"){var mx=n(a.x)*W,my=n(a.y)*H;ctx.beginPath();ctx.arc(mx,my,8*s,0,7);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=2*s;ctx.stroke();if(lab)pill(lab,mx+13*s,my,col,s)}
+ }catch(e){}});ctx.setLineDash([])}
+
+function bubble(t,c){var d=document.createElement("div");d.className="msg "+c;d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+var SYS="Tu es un analyste technique expert. L’image jointe est un graphique de prix. Réponds UNIQUEMENT par un objet JSON valide (sans markdown ni texte autour) de la forme : {\"reponse\":\"texte en français, clair et concis, avec plan (entrée, stop, objectifs, ratio R/R) si pertinent\",\"remplacer\":false,\"annotations\":[...]}.\n"+
+"Coordonnées NORMALISÉES de l’image entière : x=0 bord gauche, x=1 bord droit, y=0 haut, y=1 bas. Avant de tracer, repère sur l’échelle de prix (axe de droite) la position verticale de plusieurs graduations et interpole pour placer chaque niveau avec précision. Place les points sur les vraies bougies visibles (creux/sommets).\n"+
+"Types d’annotations : {\"t\":\"hline\",\"y\":0.3,\"kind\":\"support|resistance|level\",\"label\":\"2 360 $\"} ; {\"t\":\"line\",\"x1\":,\"y1\":,\"x2\":,\"y2\":,\"kind\":\"level\",\"label\":\"\"} ; {\"t\":\"arrow\",x1,y1,x2,y2,label} ; {\"t\":\"zone\",\"x1\":0.5,\"x2\":1,\"y1\":,\"y2\":,\"kind\":\"support|resistance|level\",\"label\":\"\"} ; {\"t\":\"fib\",\"x1\":début du mouvement,\"y1\":prix de départ,\"x2\":fin du mouvement,\"y2\":prix d’arrivée} (le retracement et les extensions sont calculés automatiquement) ; {\"t\":\"path\",\"points\":[[x,y],...],\"label\":\"scénario haussier\"} pour une prédiction (x entre le dernier prix et 1) ; {\"t\":\"marker\",\"x\":,\"y\":,\"kind\":\"buy|sell|info\",\"label\":\"Entrée\"}.\n"+
+"Mets \"remplacer\":true seulement si l’utilisateur veut refaire les tracés ; sinon les nouveaux s’ajoutent aux existants. Si la demande ne nécessite aucun tracé, renvoie annotations:[]. Ne rien inventer qui ne soit pas lisible sur l’image ; indique les limites. Rappelle brièvement que ce n’est pas un conseil financier.";
+async function ask(text,show){
+ if(busy||!blob||!text.trim())return;busy=true;send.disabled=true;bubble(show||text,"me");q.value="";
+ var w=bubble("","ai");w.innerHTML='<span class="dots"><span></span><span></span><span></span></span>';
+ try{
+  var sample=await claude.use("sample");if(!sample)throw{message:"L’IA n’est pas disponible ici : ouvrez la page depuis claude.ai."};
+  var lim=await sample.limits();if(!lim.images)throw{message:"L’envoi d’images n’est pas activé."};
+  var prompt=SYS+"\n\nTracés actuels : "+JSON.stringify(ann)+"\nHistorique récent : "+JSON.stringify(hist.slice(-4))+"\n\nDemande : "+text;
+  var r=await sample(prompt,{images:[blob],modelTier:"complex",cache:false});
+  var m=r.text.replace(/```json|```/g,"").trim(),i=m.indexOf("{"),j=m.lastIndexOf("}"),o;
+  try{o=JSON.parse(m.slice(i,j+1))}catch(e){o={reponse:r.text,annotations:[]}}
+  if(o.remplacer)ann=[];if(Array.isArray(o.annotations))ann=ann.concat(o.annotations);draw();
+  w.textContent=o.reponse||"Tracés ajoutés.";hist.push({q:text,a:(o.reponse||"").slice(0,300)});
+ }catch(e){w.className="msg ai err";w.textContent=e&&e.code==="not_granted"?"Autorisation refusée : acceptez la demande pour continuer.":e&&e.code==="rate_limited"?"Trop de demandes, réessayez dans un instant.":"Erreur : "+((e&&e.message)||"échec")}
+ busy=false;send.disabled=false;chat.scrollTop=chat.scrollHeight}
+send.onclick=function(){ask(q.value)};q.onkeydown=function(e){if(e.key==="Enter")ask(q.value)};
+})();
+</script>
+</body>
+</html>
